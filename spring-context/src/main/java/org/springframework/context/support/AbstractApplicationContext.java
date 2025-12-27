@@ -184,9 +184,11 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	private long startupDate;
 
 	/** Flag that indicates whether this context is currently active. */
+	//此上下文当前是否处理活动状态
 	private final AtomicBoolean active = new AtomicBoolean();
 
 	/** Flag that indicates whether this context has been closed already. */
+	//用于指示此上下文是否已关闭
 	private final AtomicBoolean closed = new AtomicBoolean();
 
 	/** Synchronization monitor for the "refresh" and "destroy". */
@@ -515,13 +517,43 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 
 	@Override
 	public void refresh() throws BeansException, IllegalStateException {
+		/**
+		 * 保证refresh操作的线程安全（close()也有锁，一样的作用）
+		 * 保证互斥，启动和关闭不能交叉执行
+		 * 思考：为什么不用synchronized(this)，这里用的 "private final Object startupShutdownMonitor = new Object();" 私有的专用锁，不被外部使用，安全且明确，而如果用this 容器对象可能暴露出去，导致死锁风险
+		 */
 		synchronized (this.startupShutdownMonitor) {
+			/**
+			 * 容器前置准备工作
+			 * 	· 设置容器状态（startupDate, closed=false）
+			 * 	· 初始化占位属性（比如 PropertySources）
+			 * 	· 环境配置校验（检查 Environment、Profile）
+			 * 	· 清空事件缓存（后面注册监听器之前需要干净环境）
+			 * 	总结：准备运行上下文、容器启动前清扫战场！
+			 */
 			// Prepare this context for refreshing.
 			prepareRefresh();
 
+			/**
+			 * 获取/刷新BeanFactory
+			 * 	· 加载BeanDefinition 通过reader / scanner
+			 * 	· 解析XML、注解  注册到BeanDefinitionRegistry
+			 * 	· 得到DefaultListableBeanFactory   -- IOC的核心工厂对象  （DefaultListableBeanFactory implements ConfigurableListableBeanFactory）
+			 * 	总结：Bean还没创建，只是元数据加载好了
+			 */
 			// Tell the subclass to refresh the internal bean factory.
 			ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory();
 
+			/**
+			 * BeanFactory 环境增强
+			 *  · 注册ClassLoader (beanFactory.setBeanClassLoader
+			 *  · 注册SpEL (设置表达式解析能力)
+			 *  · 注册默认Bean (environment、systemProperties、systemEnvironment)
+			 *  · 忽略接口自动注入 (忽略 BeanNameAware 等，他们走特殊路径)
+			 *  · 注册自动装配候选接口 (ApplicationContextAwareProcessor)
+			 *  总结：让BeanFactory 具备Spring一样的思考的基础能力
+			 *
+			 */
 			// Prepare the bean factory for use in this context.
 			prepareBeanFactory(beanFactory);
 
@@ -598,10 +630,14 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		}
 
 		// Initialize any placeholder property sources in the context environment.
+		//在上下文环境中初始化所有占位符属性源
 		initPropertySources();
 
 		// Validate that all properties marked as required are resolvable:
+		// 验证所有标记为必填的属性是否均可解析
+
 		// see ConfigurablePropertyResolver#setRequiredProperties
+		// 请参阅ConfigurablePropertyResolver#setRequiredProperties
 		getEnvironment().validateRequiredProperties();
 
 		// Store pre-refresh ApplicationListeners...
