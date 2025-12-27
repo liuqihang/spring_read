@@ -13,7 +13,7 @@ import java.util.Arrays;
 @Component
 public class LogUtil {
 
-    @Pointcut("execution(public Integer com.mashibing.aop.annotation.service.MyCalculator.*(Integer,Integer))")
+    @Pointcut("execution(public Integer com.liuqihang.aop.annotation.service.MyCalculator.*(Integer,Integer))")
     public void myPointCut(){}
 
 //    @Pointcut("execution(* *(..))")
