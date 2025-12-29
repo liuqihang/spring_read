@@ -13,16 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.liuqihang.ioc;
 
-import org.springframework.context.support.ClassPathXmlApplicationContext;
+package com.spring.test;
 
-public class IocTest_01 {
+public class Person {
 
-	public static void main(String[] args) {
-		ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext("test.xml");
-//		Person bean = context.getBean(Person.class);
-//		System.out.println(bean);
-		System.out.println("Hello Spring");
+	private int id;
+	private String name;
+
+	public int getId() {
+		return this.id;
+	}
+
+	public void setId(int id) {
+		this.id = id;
+	}
+
+	public String getName() {
+		return this.name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
 	}
 }
