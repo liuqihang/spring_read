@@ -558,7 +558,10 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 			prepareBeanFactory(beanFactory);
 
 			try {
-				// Allows post-processing of the bean factory in context subclasses.
+				// Allows post-processing of the bean factory in context subclasses.允许在上下文子类中对Bean工厂进行后处理。
+				/**
+				 * AbstractApplicationContext 本身未实现具体逻辑，只是一个扩展点，留给子类去扩展
+				 */
 				postProcessBeanFactory(beanFactory);
 
 				// Invoke factory processors registered as beans in the context.
@@ -574,6 +577,27 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				initApplicationEventMulticaster();
 
 				// Initialize other special beans in specific context subclasses.
+				/**
+				 * 留给子类扩展
+				 * 典型的例子：Spring Boot 启动内置tomcat
+				 * @Override
+				 * protected void onRefresh() {
+				 *     super.onRefresh();
+				 *     try {
+				 *         createWebServer();  // 🚀 就是这里启动 Tomcat/Jetty/Netty
+				 *     }
+				 * }
+				 * 可以自己摘容器启动时，初始化线程池、MQ链接、缓存客户端等非BeanFactory得资源
+				 * 示例：
+				 * 	public class MyContext extends AnnotationConfigApplicationContext {
+				 *     @Override
+				 *     protected void onRefresh() {
+				 *         super.onRefresh();
+				 *         this.executor = Executors.newFixedThreadPool(10);
+				 *         System.out.println("🚀 Executor initialized!");
+				 *     }
+				 * }
+				 */
 				onRefresh();
 
 				// Check for listener beans and register them.
@@ -671,7 +695,25 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 * @see #getBeanFactory()
 	 */
 	protected ConfigurableListableBeanFactory obtainFreshBeanFactory() {
+		//invoke 子类AbstractRefreshableApplicationContext重新refreshBeanFactory()
 		refreshBeanFactory();
+
+		//实际返回：实现类DefaultListableBeanFactory (private "volatile" DefaultListableBeanFactory beanFactory;)
+		/**
+		 * 因为 ApplicationContext 可能在多线程环境中被访问，例如：
+		 * 一个线程正在执行 refresh()，创建 / 替换 beanFactory
+		 * 另一些线程在调用 getBean()、getBeanFactory() 获取 BeanFactory
+		 * 如果 不使用 volatile：
+		 * 线程 A 修改了 beanFactory 引用，
+		 * 线程 B 可能看不到最新的值，继续用旧引用 → 可能出错。
+		 *
+		 * 使用 volatile 后：
+		 * 写线程修改 beanFactory 会 立刻刷新到主内存
+		 * 读线程读取时 直接从主内存读最新值
+		 * 避免使用旧 BeanFactory 导致不一致
+		 *
+		 * 因此 volatile 确保任何线程始终拿到“最新、真实”的 BeanFactory 实例。
+		 */
 		return getBeanFactory();
 	}
 
@@ -1449,6 +1491,22 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 * @see #refreshBeanFactory()
 	 * @see #closeBeanFactory()
 	 */
+
+	//ConfigurableApplicationContext 接口定义getBeanFactory(),这里为什么仅仅是抽象重新，而不是具体实现呢？
+	/**
+	 * AbstractApplicationContext本事不存储BeanFactory, 它仅仅是一个框架的生命周期模板，并不知道
+	 * 	BeanFactory 是懒加载？提前创建？
+	 * 	存在哪个字段？
+	 * 	存储方式是否可变？
+	 * 	是 DefaultListableBeanFactory ？还是可扩展实现？
+	 * 	只有子类具体才知道，所以交由子类去实现。
+	 * 	设计意图：
+	 * 		设计点				原因
+	 * 	接口声明方法		所有 ApplicationContext 都必须提供 BeanFactory
+	 * 	抽象类不实现		因为不知道 BeanFactory 的来源、存储方式、生命周期
+	 * 	子类实现			子类最了解其 BeanFactory 的结构 & 获取方式
+	 */
+
 	@Override
 	public abstract ConfigurableListableBeanFactory getBeanFactory() throws IllegalStateException;
 

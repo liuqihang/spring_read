@@ -46,6 +46,10 @@ import org.springframework.util.Assert;
  * @since 3.0
  * @see AnnotationConfigApplicationContext#register
  */
+
+/**
+ * 独立的体系，不继承AbstractBeanDefinitionReader， 它直接解析Java类上的注解
+ */
 public class AnnotatedBeanDefinitionReader {
 
 	private final BeanDefinitionRegistry registry;

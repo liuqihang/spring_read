@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'checkstyle'
+    id "org.jetbrains.kotlin.jvm" version "1.5.31" // 保证和 IDEA 插件一致
 }
 
 gradle.projectsEvaluated {
@@ -8,6 +9,23 @@ gradle.projectsEvaluated {
         t.enabled = false
     }
 }
+
+// Java 编译器编码
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = "UTF-8"
+}
+
+// Kotlin 编译器编码
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    kotlinOptions {
+        freeCompilerArgs += ["-Xjsr305=strict", "-encoding", "UTF-8"]
+        jvmTarget = "1.8"
+        languageVersion = "1.5"
+        apiVersion = "1.5"
+        allWarningsAsErrors = false
+    }
+}
+
 
 
 group 'org.springframework'
@@ -61,9 +79,18 @@ tasks.withType(Checkstyle).configureEach {
 /**
  * 🚫 Kotlin 临时禁用 Werror（如果你有 Kotlin）
  */
+//tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+//    kotlinOptions {
+//        allWarningsAsErrors = false
+//        freeCompilerArgs -= "-Werror"    // <--- 强制移除父项目注入的 -Werror
+//    }
+//}
+
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
     kotlinOptions {
-        allWarningsAsErrors = false
-        freeCompilerArgs -= "-Werror"    // <--- 强制移除父项目注入的 -Werror
+        allWarningsAsErrors = false  // 取消 -Werror
+        languageVersion = "1.5"
+        apiVersion = "1.5"
     }
 }
+

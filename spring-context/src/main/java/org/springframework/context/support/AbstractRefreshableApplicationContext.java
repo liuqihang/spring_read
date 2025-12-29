@@ -126,7 +126,12 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
 		try {
 			DefaultListableBeanFactory beanFactory = createBeanFactory();
 			beanFactory.setSerializationId(getId());
+			//可以自定义子类重写该方法，调整allowBeanDefinitionOverriding(允许beanDefinition重写)、allowCircularReferences(允许循环依赖)值
 			customizeBeanFactory(beanFactory);
+
+			/**
+			 *这里我测试是ClassPathXmlApplicationContext。所以这里的loadBeanDefinitions执行实际上是调用了AbstractXmlApplicationContext.loadBeanDefinitions(DefaultListableBeanFactory beanFactory)
+			 */
 			loadBeanDefinitions(beanFactory);
 			this.beanFactory = beanFactory;
 		}
@@ -163,6 +168,7 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
 
 	@Override
 	public final ConfigurableListableBeanFactory getBeanFactory() {
+		//DefaultListableBeanFactory 实现 ConfigurableListableBeanFactory
 		DefaultListableBeanFactory beanFactory = this.beanFactory;
 		if (beanFactory == null) {
 			throw new IllegalStateException("BeanFactory not initialized or already closed - " +
@@ -180,6 +186,15 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
 	}
 
 	/**
+	 *  * 为当前 ApplicationContext 创建一个内部使用的 BeanFactory。
+	 *  * 每次调用 {@link #refresh()} 时都会执行该方法。
+	 *  *
+	 *  * 默认实现创建一个 DefaultListableBeanFactory，
+	 *  * 并将此上下文父容器的内部 BeanFactory 作为它的父 BeanFactory（如果存在）。
+	 *  * 子类可以覆盖此方法，例如用来自定义 DefaultListableBeanFactory 的设置。
+	 *  *
+	 *  * @return 当前上下文所使用的 BeanFactory 实例
+	 *
 	 * Create an internal bean factory for this context.
 	 * Called for each {@link #refresh()} attempt.
 	 * <p>The default implementation creates a
@@ -194,6 +209,7 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
 	 * @see org.springframework.beans.factory.support.DefaultListableBeanFactory#setAllowRawInjectionDespiteWrapping
 	 */
 	protected DefaultListableBeanFactory createBeanFactory() {
+		//这里getInternalParentBeanFactory 是null ? 前面的setParent()  -- this(new String[] {configLocation}, true, null);传入就是null
 		return new DefaultListableBeanFactory(getInternalParentBeanFactory());
 	}
 
