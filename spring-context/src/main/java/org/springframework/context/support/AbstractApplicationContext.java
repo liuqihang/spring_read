@@ -545,6 +545,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 			ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory();
 
 			/**
+			 * 准备工作，对各种属性进行填充
 			 * BeanFactory 环境增强
 			 *  · 注册ClassLoader (beanFactory.setBeanClassLoader
 			 *  · 注册SpEL (设置表达式解析能力)
@@ -783,6 +784,9 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 * <p>Must be called before singleton instantiation.
 	 */
 	protected void invokeBeanFactoryPostProcessors(ConfigurableListableBeanFactory beanFactory) {
+		/**
+		 * getBeanFactoryPostProcessors()默认是空的, 但可以自己扩展实现调用addBeanFactoryPostProcessor
+		 */
 		PostProcessorRegistrationDelegate.invokeBeanFactoryPostProcessors(beanFactory, getBeanFactoryPostProcessors());
 
 		// Detect a LoadTimeWeaver and prepare for weaving, if found in the meantime

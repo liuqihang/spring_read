@@ -52,19 +52,46 @@ final class PostProcessorRegistrationDelegate {
 	private PostProcessorRegistrationDelegate() {
 	}
 
-
+	//让所有 BeanFactoryPostProcessor 按规则、有序、完整地作用于 BeanFactory / BeanDefinition，确保 “Bean 的定义体系” 在 Bean 创建前被完全准备好。
+	//这里的顺序：PriorityOrdered → Ordered → 无序
+	//区分 BeanDefinitionRegistryPostProcessor 和 BeanFactoryPostProcessor
+	//  最先执行BeanDefinitionRegistryPostProcessor，来进行增加/修改 BeanDefinition，必须最早执行，因为影响后续扫描、配置
+	//	BeanFactoryPostProcessor修改 BeanFactory 属性,必须在BeanDefinition 完整之后，所以排在执行BeanDefinitionRegistryPostProcessor之后
+	/*
+	 * 顺序	目标														示例
+	 * 1	BeanDefinitionRegistryPostProcessor + PriorityOrdered	ConfigurationClassPostProcessor
+	 * 2	BeanDefinitionRegistryPostProcessor + Ordered			自定义扫描器
+	 * 3	BeanDefinitionRegistryPostProcessor + 无序				其他注册增强
+	 * 4	BeanFactoryPostProcessor + PriorityOrdered				早期调整工厂属性
+	 * 5	BeanFactoryPostProcessor + Ordered						调整 Factory 的行为
+	 * 6	BeanFactoryPostProcessor + 无序							剩余的
+	 */
+	/*
+		为什么必须这样设计？（本质原因）
+		设计点									目的							如果不这样做会怎样
+	先 Registry，再 Factory				Bean 定义必须完整后才能改工厂属性			Factory 修改可能基于不完整定义
+	多轮循环执行 Registry					允许后生成的定义继续参与					新 BeanDefinition 无法处理
+	PriorityOrdered > Ordered > 无序		可控、可声明顺序						执行顺序不稳定，影响框架扩展
+	用户传入 > 容器内部					用户至上								框架强压用户逻辑，扩展性差
+	排序 & 分类 & 批次处理					可插拔、可扩展、可维护					模块间互相覆盖、执行顺序不可预期
+	 */
 	public static void invokeBeanFactoryPostProcessors(
 			ConfigurableListableBeanFactory beanFactory, List<BeanFactoryPostProcessor> beanFactoryPostProcessors) {
 
 		// Invoke BeanDefinitionRegistryPostProcessors first, if any.
 		Set<String> processedBeans = new HashSet<>();
 
+		/**
+		 * beanFactory == public class DefaultListableBeanFactory implements ... BeanDefinitionRegistry ...
+		 * 所以这里的if符合条件
+		 */
 		if (beanFactory instanceof BeanDefinitionRegistry) {
 			BeanDefinitionRegistry registry = (BeanDefinitionRegistry) beanFactory;
 			List<BeanFactoryPostProcessor> regularPostProcessors = new ArrayList<>();
 			List<BeanDefinitionRegistryPostProcessor> registryProcessors = new ArrayList<>();
 
 			for (BeanFactoryPostProcessor postProcessor : beanFactoryPostProcessors) {
+				//如果是BeanDefinitionRegistryPostProcessor则添加到registryProcessors
 				if (postProcessor instanceof BeanDefinitionRegistryPostProcessor) {
 					BeanDefinitionRegistryPostProcessor registryProcessor =
 							(BeanDefinitionRegistryPostProcessor) postProcessor;
@@ -72,6 +99,7 @@ final class PostProcessorRegistrationDelegate {
 					registryProcessors.add(registryProcessor);
 				}
 				else {
+					//反之添加到regularPostProcessors
 					regularPostProcessors.add(postProcessor);
 				}
 			}
@@ -80,6 +108,8 @@ final class PostProcessorRegistrationDelegate {
 			// uninitialized to let the bean factory post-processors apply to them!
 			// Separate between BeanDefinitionRegistryPostProcessors that implement
 			// PriorityOrdered, Ordered, and the rest.
+
+			//保存本次要执行的BeanDefinitionRegistryPostProcessor
 			List<BeanDefinitionRegistryPostProcessor> currentRegistryProcessors = new ArrayList<>();
 
 			// First, invoke the BeanDefinitionRegistryPostProcessors that implement PriorityOrdered.
@@ -91,12 +121,24 @@ final class PostProcessorRegistrationDelegate {
 					processedBeans.add(ppName);
 				}
 			}
+			//按照优先级进行排序操作
 			sortPostProcessors(currentRegistryProcessors, beanFactory);
+			//添加到registryProcessors，用于最后执行postProcessBeanFactory方法
 			registryProcessors.addAll(currentRegistryProcessors);
+			//遍历currentRegistryProcessors，执行postProcessBeanDefinitionRegistry方法
 			invokeBeanDefinitionRegistryPostProcessors(currentRegistryProcessors, registry);
+			//执行完毕后清空
 			currentRegistryProcessors.clear();
 
 			// Next, invoke the BeanDefinitionRegistryPostProcessors that implement Ordered.
+			//这部分的实现和上面的代码逻辑一致，因为上面的invokeBeanDefinitionRegistryPostProcessors执行过程中可能会新增其他的BeanDefinitionRegistryPostProcessor
+			/**
+			 * 因为 执行一个 RegistryPostProcessor 可能会产出新的 BeanDefinition、甚至新的 RegistryPostProcessor：
+			 * ConfigurationClassPostProcessor 扫描 @Configuration → 发现更多 @Bean
+			 * ComponentScan → 发现新类 → 可能包含新处理器
+			 * 如果不循环，就会漏掉新产生的处理器 / Bean 定义。
+			 * 🔑 循环 = 保证 “动态扩展的处理器” 也能参与全流程。
+			 */
 			postProcessorNames = beanFactory.getBeanNamesForType(BeanDefinitionRegistryPostProcessor.class, true, false);
 			for (String ppName : postProcessorNames) {
 				if (!processedBeans.contains(ppName) && beanFactory.isTypeMatch(ppName, Ordered.class)) {
@@ -109,6 +151,7 @@ final class PostProcessorRegistrationDelegate {
 			invokeBeanDefinitionRegistryPostProcessors(currentRegistryProcessors, registry);
 			currentRegistryProcessors.clear();
 
+			/* （最后一次循环“while”,处理直到没有新增的Processor） */
 			// Finally, invoke all other BeanDefinitionRegistryPostProcessors until no further ones appear.
 			boolean reiterate = true;
 			while (reiterate) {
@@ -136,9 +179,44 @@ final class PostProcessorRegistrationDelegate {
 			// Invoke factory processors registered with the context instance.
 			invokeBeanFactoryPostProcessors(beanFactoryPostProcessors, beanFactory);
 		}
+		//到此上面的处理逻辑代码，已将入参传入的beanFactoryPostProcessors 和 容器中所有的BeanDefinitionRegistryPostProcessor已经全部处理完毕。
+		// 下面开始处理容器中的BeanFactoryPostProcessor，因为可能有些实现类直接实现的是BeanFactoryPostProcessor，未走实现子类BeanDefinitionRegistryPostProcessor
+
+		//这里需要和上述逻辑对比，不难注意到BeanFactoryPostProcessor未进行重复处理，只执行了一轮。因为实现BeanFactoryPostProcessor是不会再新增新的 Processor（时机太晚）的操作的(postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory))
+
+		//网上找到一些总结：
+		/*
+		 	1. BeanDefinition 已加载，但 Bean 还没创建
+			2. 执行 BeanDefinitionRegistryPostProcessor（可以新增/修改 BeanDefinition）
+			3. BeanDefinition 可能被新增 → 需要重新扫描确保新注册的也能执行
+			4. 所有 BeanDefinition 稳定
+			5. 执行 BeanFactoryPostProcessor（只能修改已有的 BeanDefinition / BeanFactory）
+
+			职责：
+				BeanDefinitionRegistryPostProcessor 的职责，可以注册新的 BeanDefinition，（不仅是普通 Bean，还可能是其他 Processor）
+				伪代码：
+					class MyRegistryProcessor implements BeanDefinitionRegistryPostProcessor {
+						public void postProcessBeanDefinitionRegistry(registry) {
+							// 动态注册一个新的后处理器
+							registry.registerBeanDefinition("xxx", new BeanDefinition(MyCustomProcessor.class));
+						}
+					}
+				在执行第一个 RegistryPostProcessor 时：发现注册了新的 Processor
+				所以必须 再次扫描 BeanDefinition 以便执行它，否则它永远不会被执行
+				👉 这就是为什么 RegistryPostProcessor 执行是循环的
+				Spring 的逻辑：
+				🔁 扫描 → 执行 → 看是否新增 → 若新增则继续
+				直到 所有 RegistryPostProcessor 都被执行过。
+
+
+				BeanFactoryPostProcessor的职责是对现有的BeanFactory、BeanDefinition进行修改，而不是新增定义。
+				设计上要求它 不应该再注册新的 Processor，否则：执行顺序将变得不可预测
+				BeanFactory 已进入中后期加工，影响面大、复杂性高
+				Spring 希望扩展点集中在 Registry 阶段，保证 BeanDefinition 定型后再做 BeanFactory 级别加工
+		 */
 
 		// Do not initialize FactoryBeans here: We need to leave all regular beans
-		// uninitialized to let the bean factory post-processors apply to them!
+		// uninitialized to let the bean factory post-processors apply to them! 翻译：不要在这里初始化FactoryBeans：我们需要保留所有常规Bean未初始化，以便让Bean工厂的后处理器对其应用！
 		String[] postProcessorNames =
 				beanFactory.getBeanNamesForType(BeanFactoryPostProcessor.class, true, false);
 
@@ -194,6 +272,8 @@ final class PostProcessorRegistrationDelegate {
 		// Register BeanPostProcessorChecker that logs an info message when
 		// a bean is created during BeanPostProcessor instantiation, i.e. when
 		// a bean is not eligible for getting processed by all BeanPostProcessors.
+
+		// 这里记录count , 为什么+1，因为在此方法的最后会添加一个ApplicationListenerDetector类
 		int beanProcessorTargetCount = beanFactory.getBeanPostProcessorCount() + 1 + postProcessorNames.length;
 		beanFactory.addBeanPostProcessor(new BeanPostProcessorChecker(beanFactory, beanProcessorTargetCount));
 

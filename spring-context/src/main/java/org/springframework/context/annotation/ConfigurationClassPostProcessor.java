@@ -65,6 +65,16 @@ import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 
+// 识别 @Configuration、@Bean、@ComponentScan、@Import、@PropertySource 注解
+
+/*
+ * 主要功能是参与BeanFactory的建造
+	 * 解析 @Configuration 的配置类
+	 * 解析 @ComponentScan 扫描的包
+	 * 解析 @ComponentScans 扫描的包
+	 * 解析 @Import 注解
+ */
+
 /**
  * {@link BeanFactoryPostProcessor} used for bootstrapping processing of
  * {@link Configuration @Configuration} classes.
@@ -260,9 +270,11 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 	}
 
 	/**
-	 * Build and validate a configuration model based on the registry of
+	 * Build and validate a configuration model based on the registry of 翻译：基于registry构建并验证一个configuration模型
+	 *	SpringBoot自动装配原理的重点方法
 	 * {@link Configuration} classes.
 	 */
+	//从 BeanDefinition 里筛选出“配置类候选者（Configuration class candidates）”，解析这些配置类，生成新的 BeanDefinition，动态注册进容器，使注解驱动的 Bean 工作起来。
 	public void processConfigBeanDefinitions(BeanDefinitionRegistry registry) {
 		List<BeanDefinitionHolder> configCandidates = new ArrayList<>();
 		String[] candidateNames = registry.getBeanDefinitionNames();
