@@ -1329,6 +1329,21 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 				previous = mbd;
 				if (bd.getParentName() == null) {
 					// Use copy of given root bean definition.
+					/**
+					 * 这里解释一下if - else的判断逻辑，如果是无parent的beanDefinition,就直接clone，反之有父类就递归合并父定义。
+					 *
+					 */
+					/*
+					* 当一个 BeanDefinition 已经是 RootBeanDefinition 时，说明它已经是“合并后的格式”。
+					*	RootBeanDefinition就表示是一个可直接用来创建bean的 完整定义了
+					*
+					* 	来源示例					注册阶段类型								merge 后类型
+					XML bean 且无 parent		RootBeanDefinition						RootBeanDefinition
+					XML bean 且有 parent		GenericBeanDefinition					RootBeanDefinition
+					@Bean 方法定义			ConfigurationClassBeanDefinition		RootBeanDefinition
+					@Component 扫描			ScannedGenericBeanDefinition			RootBeanDefinition
+					*
+					*/
 					if (bd instanceof RootBeanDefinition) {
 						mbd = ((RootBeanDefinition) bd).cloneBeanDefinition();
 					}

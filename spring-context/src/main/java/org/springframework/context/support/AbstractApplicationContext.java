@@ -569,9 +569,18 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				invokeBeanFactoryPostProcessors(beanFactory);
 
 				// Register bean processors that intercept bean creation.
+				/*
+					1 找出所有 BeanPostProcessor
+					2 分优先级排序（PriorityOrdered → Ordered → Default）
+					3 提前实例化并注册到 BeanFactory
+					4 确保它们 在 Bean 创建流程执行前 准备就绪
+
+					功能上开启 AOP、依赖注入、生命周期增强，是 Spring IOC 真正“可扩展、可切面、可增强”的核心机制之一。
+				 */
 				registerBeanPostProcessors(beanFactory);
 
 				// Initialize message source for this context.
+				// 为上下文context初始化message源， 国际化处理
 				initMessageSource();
 
 				// Initialize event multicaster for this context.
@@ -605,6 +614,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				registerListeners();
 
 				// Instantiate all remaining (non-lazy-init) singletons.
+				//开始初始化
 				finishBeanFactoryInitialization(beanFactory);
 
 				// Last step: publish corresponding event.
@@ -933,6 +943,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 */
 	protected void finishBeanFactoryInitialization(ConfigurableListableBeanFactory beanFactory) {
 		// Initialize conversion service for this context.
+		// 类型转换器，代替PropertyEditor，线程安全
 		if (beanFactory.containsBean(CONVERSION_SERVICE_BEAN_NAME) &&
 				beanFactory.isTypeMatch(CONVERSION_SERVICE_BEAN_NAME, ConversionService.class)) {
 			beanFactory.setConversionService(
@@ -956,9 +967,15 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		beanFactory.setTempClassLoader(null);
 
 		// Allow for caching all bean definition metadata, not expecting further changes.
+		/*
+			冻结操作
+			this.configurationFrozen = true;
+			this.frozenBeanDefinitionNames = StringUtils.toStringArray(this.beanDefinitionNames);
+			BDF、BFPP都执行过了，再改可能影响一致性
+		 */
 		beanFactory.freezeConfiguration();
 
-		// Instantiate all remaining (non-lazy-init) singletons.
+		// Instantiate all remaining (non-lazy-init) singletons. 翻译：实例化所有剩余的（非延迟初始化）单例对象。
 		beanFactory.preInstantiateSingletons();
 	}
 

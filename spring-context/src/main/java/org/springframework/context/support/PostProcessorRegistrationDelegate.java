@@ -68,12 +68,12 @@ final class PostProcessorRegistrationDelegate {
 	 */
 	/*
 		为什么必须这样设计？（本质原因）
-		设计点									目的							如果不这样做会怎样
-	先 Registry，再 Factory				Bean 定义必须完整后才能改工厂属性			Factory 修改可能基于不完整定义
-	多轮循环执行 Registry					允许后生成的定义继续参与					新 BeanDefinition 无法处理
-	PriorityOrdered > Ordered > 无序		可控、可声明顺序						执行顺序不稳定，影响框架扩展
-	用户传入 > 容器内部					用户至上								框架强压用户逻辑，扩展性差
-	排序 & 分类 & 批次处理					可插拔、可扩展、可维护					模块间互相覆盖、执行顺序不可预期
+				设计点									目的							如果不这样做会怎样
+		先 Registry，再 Factory				Bean 定义必须完整后才能改工厂属性			Factory 修改可能基于不完整定义
+		多轮循环执行 Registry					允许后生成的定义继续参与					新 BeanDefinition 无法处理
+		PriorityOrdered > Ordered > 无序		可控、可声明顺序						执行顺序不稳定，影响框架扩展
+		用户传入 > 容器内部					用户至上								框架强压用户逻辑，扩展性差
+		排序 & 分类 & 批次处理					可插拔、可扩展、可维护					模块间互相覆盖、执行顺序不可预期
 	 */
 	public static void invokeBeanFactoryPostProcessors(
 			ConfigurableListableBeanFactory beanFactory, List<BeanFactoryPostProcessor> beanFactoryPostProcessors) {
@@ -273,7 +273,7 @@ final class PostProcessorRegistrationDelegate {
 		// a bean is created during BeanPostProcessor instantiation, i.e. when
 		// a bean is not eligible for getting processed by all BeanPostProcessors.
 
-		// 这里记录count , 为什么+1，因为在此方法的最后会添加一个ApplicationListenerDetector类
+		// 这里记录count , 为什么+1，因为在此方法添加一个 BeanPostProcessorChecker 类
 		int beanProcessorTargetCount = beanFactory.getBeanPostProcessorCount() + 1 + postProcessorNames.length;
 		beanFactory.addBeanPostProcessor(new BeanPostProcessorChecker(beanFactory, beanProcessorTargetCount));
 
@@ -332,6 +332,8 @@ final class PostProcessorRegistrationDelegate {
 
 		// Re-register post-processor for detecting inner beans as ApplicationListeners,
 		// moving it to the end of the processor chain (for picking up proxies etc).
+		// 前面add了一次（prepareBeanFactory），这里再add一次是为了确保最后还能执行一次。Spring做了幂等处理（内部使用 Set），所以执行两次不会有问题
+		// private final Set<ApplicationListener<?>> applicationListeners = new LinkedHashSet<>();(幂等实现关键是用这个数据结构存放Listener)
 		beanFactory.addBeanPostProcessor(new ApplicationListenerDetector(applicationContext));
 	}
 

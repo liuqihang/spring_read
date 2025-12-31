@@ -872,6 +872,42 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 
 		// Trigger initialization of all non-lazy singleton beans...
 		for (String beanName : beanNames) {
+			/*
+			 * 这里解释一下getMergedLocalBeanDefinition 的作用:
+			 * 		Spring 允许 BeanDefinition 具有“分散式定义 + 继承式构造”，需要在真正创建 Bean 之前，把所有来源、层级、配置、默认值整合成最终一致的、可直接实例化的定义。
+					如果不合并，BeanDefinition 在下面这些场景中会 不完整、不正确、甚至创建失败。
+					*
+					* 举个栗子：
+					* 	<bean id="apple" parent="fruit"/> XML的配置 苹果类 的父类是 水果，合并前苹果的属性并没有fruit，merged后苹果也有了fruit的属性了。
+					* 一次性处理完整，避免每次还要动态的插座父定义、注解继承、解析默认值等等一系列操作，所以提前做一次合并并缓存，提升性能。
+					*
+					* 再举个栗子（伪代码）：
+					* 	public class MyBDPP implements BeanFactoryPostProcessor {
+							public void postProcessBeanFactory(ConfigurableListableBeanFactory bf) {
+								BeanDefinition bd = bf.getBeanDefinition("userService");
+								bd.setScope("prototype");
+							}
+						}
+						*
+						*
+						* registerBeanDefinition("userService")
+							  ↓
+							ConfigurationClassPostProcessor / XML loader
+							  ↓
+							postProcessBeanFactory → 修改 scope
+							  ↓
+							freezeConfiguration()
+							  ↓
+							getMergedLocalBeanDefinition("userService") → 最终 scope = prototype
+							  ↓
+							preInstantiateSingletons() → 跳过 prototype
+						如果没有合并阶段，scope 修改就不会体现在最终 Bean 创建行为上。
+						*
+				那为什么不是即时解析，而要先合并后创建bean呢？
+					如果是即时解析，每次 getBean 都要向父级溯源，导致性能差、行为不一，而提前合并缓存，就只解析一次，高效稳定
+				最后做个总结：它把来自 XML、注解、父子关系、默认配置、后处理器的所有碎片化定义，整合成一个最终、稳定、可直接用于创建 Bean 的 RootBeanDefinition！！！
+			 */
+
 			RootBeanDefinition bd = getMergedLocalBeanDefinition(beanName);
 			if (!bd.isAbstract() && bd.isSingleton() && !bd.isLazyInit()) {
 				if (isFactoryBean(beanName)) {

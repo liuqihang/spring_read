@@ -81,6 +81,7 @@ public abstract class AbstractApplicationEventMulticaster
 
 	@Override
 	public void setBeanFactory(BeanFactory beanFactory) {
+		//需要依赖 ConfigurableBeanFactory 提供的能力,所以这里要求强制类型判断
 		if (!(beanFactory instanceof ConfigurableBeanFactory)) {
 			throw new IllegalStateException("Not running in a ConfigurableBeanFactory: " + beanFactory);
 		}
