@@ -930,7 +930,9 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 					}
 				}
 				else {
+					System.out.println("start getBean:" + beanName);
 					getBean(beanName);
+					System.out.println("end getBean:" + beanName);
 				}
 			}
 		}
@@ -1340,6 +1342,7 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 				autowiredBeanNames.add(autowiredBeanName);
 			}
 			if (instanceCandidate instanceof Class) {
+				//开始注入依赖 resolveCandidate
 				instanceCandidate = descriptor.resolveCandidate(autowiredBeanName, type, this);
 			}
 			Object result = instanceCandidate;

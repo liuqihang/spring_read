@@ -234,13 +234,37 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 		return null;
 	}
 
+	//原始 Bean 已经创建了，但在循环依赖场景下，需要提前暴露一个“可能是代理”的引用
 	@Override
 	public Object getEarlyBeanReference(Object bean, String beanName) {
 		Object cacheKey = getCacheKey(bean.getClass(), beanName);
 		this.earlyProxyReferences.put(cacheKey, bean);
 		return wrapIfNecessary(bean, beanName, cacheKey);
 	}
+	/*
+	getEarlyBeanReference（原始 Bean 已经创建了，但在循环依赖场景下，需要提前暴露一个“可能是代理”的引用）
+	和
+	postProcessBeforeInstantiation（我直接用代理，连原始 Bean 都不想创建）
+	的区别
 
+	这两个方法调用的时机是不同的：
+	getBean
+		 └─ doCreateBean
+			 ├─ resolveBeforeInstantiation
+			 │   └─ postProcessBeforeInstantiation   ← ★ 代理 #1（替代实例）
+			 │
+			 ├─ instantiateBean                      ← new 原始对象
+			 │
+			 ├─ addSingletonFactory
+			 │   └─ getEarlyBeanReference             ← ★ 代理 #2（循环依赖）
+			 │
+			 ├─ populateBean
+			 ├─ initializeBean
+			 └─ addSingleton
+
+	*/
+
+	//我直接用代理，连原始 Bean 都不想创建
 	@Override
 	public Object postProcessBeforeInstantiation(Class<?> beanClass, String beanName) {
 		Object cacheKey = getCacheKey(beanClass, beanName);

@@ -499,14 +499,22 @@ public class DispatcherServlet extends FrameworkServlet {
 	 * Initialize the strategy objects that this servlet uses.
 	 * <p>May be overridden in subclasses in order to initialize further strategy objects.
 	 */
+	//SpringMVC的九大组件
 	protected void initStrategies(ApplicationContext context) {
 		initMultipartResolver(context);
 		initLocaleResolver(context);
 		initThemeResolver(context);
+		//找Controller
 		initHandlerMappings(context);
+
+		//调用Controller
 		initHandlerAdapters(context);
+
+		//异常处理
 		initHandlerExceptionResolvers(context);
 		initRequestToViewNameTranslator(context);
+
+		//找视图
 		initViewResolvers(context);
 		initFlashMapManager(context);
 	}

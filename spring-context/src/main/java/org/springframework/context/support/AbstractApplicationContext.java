@@ -706,7 +706,8 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 * @see #getBeanFactory()
 	 */
 	protected ConfigurableListableBeanFactory obtainFreshBeanFactory() {
-		//invoke 子类AbstractRefreshableApplicationContext重新refreshBeanFactory()
+		//xml 			invoke 	子类AbstractRefreshableApplicationContext重新refreshBeanFactory()
+		//annotation 	invoke 	子类GenericApplicationContext, 里面比较简单, 构造器直接就持有DefaultListableBeanFactory
 		refreshBeanFactory();
 
 		//实际返回：实现类DefaultListableBeanFactory (private "volatile" DefaultListableBeanFactory beanFactory;)
@@ -953,17 +954,37 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		// Register a default embedded value resolver if no BeanFactoryPostProcessor
 		// (such as a PropertySourcesPlaceholderConfigurer bean) registered any before:
 		// at this point, primarily for resolution in annotation attribute values.
+		/**
+		 * 给 BeanFactory 注册一个 内嵌值解析器（EmbeddedValueResolver），用于解析：
+		 * ${property} 占位符
+		 * @Value("${...}")
+		 * XML 配置中的 ${xxx}
+		 * 注解属性中的 ${xxx}
+		 * 通俗来说——让 Spring 能解析 ${} 占位 符，具体使用 Environment 来替换。
+		 */
 		if (!beanFactory.hasEmbeddedValueResolver()) {
 			beanFactory.addEmbeddedValueResolver(strVal -> getEnvironment().resolvePlaceholders(strVal));
 		}
 
 		// Initialize LoadTimeWeaverAware beans early to allow for registering their transformers early.
+		/**
+		 * 把所有实现了 LoadTimeWeaverAware 的 Bean 提前实例化。
+		 * 目的是：
+			 * 让这些 Bean 尽早注册 LoadTimeWeaver 的 ClassTransformer，用于 “类加载时织入” AOP。
+		 * LoadTimeWeaver 是干什么的？
+		 	* 用于 加载类时动态增强（类似 AspectJ LTW），而不是运行时代理。
+		 * 常见场景：
+			 * JPA 的 lazy loading
+			 * AspectJ load-time weaving
+			 * Instrumentation
+		 * 如果不提前创建，类加载时织入可能错过时机，导致增强失败。
+		 */
 		String[] weaverAwareNames = beanFactory.getBeanNamesForType(LoadTimeWeaverAware.class, false, false);
 		for (String weaverAwareName : weaverAwareNames) {
 			getBean(weaverAwareName);
 		}
 
-		// Stop using the temporary ClassLoader for type matching.
+		// Stop using the temporary ClassLoader for type matching. 停止使用临时的ClassLoader进行类型匹配
 		beanFactory.setTempClassLoader(null);
 
 		// Allow for caching all bean definition metadata, not expecting further changes.
@@ -972,6 +993,8 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 			this.configurationFrozen = true;
 			this.frozenBeanDefinitionNames = StringUtils.toStringArray(this.beanDefinitionNames);
 			BDF、BFPP都执行过了，再改可能影响一致性
+
+			注意：frozenBeanDefinitionNames这个冻结的bd数组也只是存储了一下。Spring并没有真正冻结锁住beanDefinitionNames
 		 */
 		beanFactory.freezeConfiguration();
 
