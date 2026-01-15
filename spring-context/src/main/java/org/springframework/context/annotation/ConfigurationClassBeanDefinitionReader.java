@@ -145,6 +145,11 @@ class ConfigurationClassBeanDefinitionReader {
 		}
 
 		loadBeanDefinitionsFromImportedResources(configClass.getImportedResources());
+		//在此注册Import导入的beanDefinition。 比如
+		// @Import(AspectJAutoProxyRegistrar.class)
+		// public @interface EnableAspectJAutoProxy
+
+		// AspectJAutoProxyRegistrar就是在此导入的
 		loadBeanDefinitionsFromRegistrars(configClass.getImportBeanDefinitionRegistrars());
 	}
 

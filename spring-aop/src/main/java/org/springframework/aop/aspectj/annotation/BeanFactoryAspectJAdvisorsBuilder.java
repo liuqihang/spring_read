@@ -109,6 +109,7 @@ public class BeanFactoryAspectJAdvisorsBuilder {
 										new BeanFactoryAspectInstanceFactory(this.beanFactory, beanName);
 								List<Advisor> classAdvisors = this.advisorFactory.getAdvisors(factory);
 								if (this.beanFactory.isSingleton(beanName)) {
+									//这里澄清Advisor不是放到BeanDefinition等等其他Spring相关容器中，而是放入advisorsCache内存中。只是第一次需要AOP时存放
 									this.advisorsCache.put(beanName, classAdvisors);
 								}
 								else {

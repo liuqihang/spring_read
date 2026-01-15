@@ -114,7 +114,7 @@ public class ReflectiveAspectJAdvisorFactory extends AbstractAspectJAdvisorFacto
 		this.beanFactory = beanFactory;
 	}
 
-
+	// 解析@Aspect注解类里面的Advisor，通过反射获取所有方法拿到Advice类型
 	@Override
 	public List<Advisor> getAdvisors(MetadataAwareAspectInstanceFactory aspectInstanceFactory) {
 		Class<?> aspectClass = aspectInstanceFactory.getAspectMetadata().getAspectClass();

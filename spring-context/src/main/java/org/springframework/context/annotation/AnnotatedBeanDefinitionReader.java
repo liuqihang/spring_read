@@ -258,7 +258,7 @@ public class AnnotatedBeanDefinitionReader {
 		if (this.conditionEvaluator.shouldSkip(abd.getMetadata())) {
 			return;
 		}
-
+		//手动设置实例化的方式, bean实例化的时候优先使用这个方式
 		abd.setInstanceSupplier(supplier);
 		ScopeMetadata scopeMetadata = this.scopeMetadataResolver.resolveScopeMetadata(abd);
 		abd.setScope(scopeMetadata.getScopeName());

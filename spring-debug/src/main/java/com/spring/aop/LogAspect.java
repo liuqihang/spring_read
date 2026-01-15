@@ -11,7 +11,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class LogAspect {
 
-	@Pointcut("execution(* com.spring.aop..*(..))")
+//	@Pointcut("execution(* com.spring.aop..*(..))")
+	@Pointcut("execution(* com.spring.aop.LogService.*(..))")
 	public void serviceMethods() {}
 
 

@@ -86,8 +86,11 @@ public class AnnotationConfigApplicationContext extends GenericApplicationContex
 	 * {@link Configuration @Configuration} classes
 	 */
 	public AnnotationConfigApplicationContext(Class<?>... componentClasses) {
+		//继承GenericApplicationContext，先调用父类构造方法, 直接默认持有DefaultListableBeanFactory, 同时创建5个默认的Spring beanDefinition的能力,比如internalConfigurationAnnotationProcessor
 		this();
+		//将componentClasses类注入beanFactory的beanDefinitionMap
 		register(componentClasses);
+		// AbstractApplicationContext.refresh()
 		refresh();
 	}
 

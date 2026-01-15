@@ -45,6 +45,13 @@ import org.springframework.util.MultiValueMap;
  * @author Juergen Hoeller
  * @since 4.0
  */
+
+/*
+ 判断某个配置/bean 是否应该生效
+ 	· 解析并执行@Conditional注解及其派生注解（如@ConditionalOnClass、@ConditionalOnBean、@ConditionalOnProperty等）的条件逻辑。
+	· 判定某个BeanDefinition、ConfigurationClass（配置类）是否应该被 Spring 容器加载。
+	· 支撑 Spring Boot 的 “自动配置” 核心特性（比如根据是否存在某个类 / 配置，决定是否启用某个自动配置类）。
+ */
 class ConditionEvaluator {
 
 	private final ConditionContextImpl context;
