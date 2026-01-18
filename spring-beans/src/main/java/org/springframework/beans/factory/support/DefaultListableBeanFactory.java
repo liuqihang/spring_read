@@ -879,7 +879,7 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 					*
 					* 举个栗子：
 					* 	<bean id="apple" parent="fruit"/> XML的配置 苹果类 的父类是 水果，合并前苹果的属性并没有fruit，merged后苹果也有了fruit的属性了。
-					* 一次性处理完整，避免每次还要动态的插座父定义、注解继承、解析默认值等等一系列操作，所以提前做一次合并并缓存，提升性能。
+					* 一次性处理完整，避免每次还要动态的查询父定义、注解继承、解析默认值等等一系列操作，所以提前做一次合并并缓存，提升性能。
 					*
 					* 再举个栗子（伪代码）：
 					* 	public class MyBDPP implements BeanFactoryPostProcessor {
@@ -930,9 +930,9 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 					}
 				}
 				else {
-					System.out.println("start getBean:" + beanName);
+//					System.out.println("start getBean:" + beanName);
 					getBean(beanName);
-					System.out.println("end getBean:" + beanName);
+//					System.out.println("end getBean:" + beanName);
 				}
 			}
 		}

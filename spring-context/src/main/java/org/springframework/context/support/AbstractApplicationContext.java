@@ -584,6 +584,9 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				initMessageSource();
 
 				// Initialize event multicaster for this context.
+				//				先初始化事件多播器（ApplicationEventMulticaster），
+				//				再把监听器注册到多播器里  -- registerListeners()，
+				//				由多播器负责事件的分发与回调。
 				initApplicationEventMulticaster();
 
 				// Initialize other special beans in specific context subclasses.
@@ -760,7 +763,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		beanFactory.registerResolvableDependency(ApplicationEventPublisher.class, this);
 		beanFactory.registerResolvableDependency(ApplicationContext.class, this);
 
-		// Register early post-processor for detecting inner beans as ApplicationListeners.
+		// Register early post-processor for detecting inner beans as ApplicationListeners. 翻译：将用于检测内部bean的早期后处理器注册为ApplicationListener。和后面registerBPP那一次是处理不同阶段的事件监听，保证覆盖到“不同创建窗口”的Bean
 		beanFactory.addBeanPostProcessor(new ApplicationListenerDetector(this));
 
 		// Detect a LoadTimeWeaver and prepare for weaving, if found.
@@ -806,6 +809,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		// Detect a LoadTimeWeaver and prepare for weaving, if found in the meantime
 		// (e.g. through an @Bean method registered by ConfigurationClassPostProcessor)
 		if (beanFactory.getTempClassLoader() == null && beanFactory.containsBean(LOAD_TIME_WEAVER_BEAN_NAME)) {
+			//类加载器织入 LTW -Load-Time-Weaving : ASM / AspectJ，在 class load 时改字节码。作用：在 Bean 初始化时，如果 Bean 实现了 LoadTimeWeaverAware，就把容器中的 LoadTimeWeaver 注入进去。
 			beanFactory.addBeanPostProcessor(new LoadTimeWeaverAwareProcessor(beanFactory));
 			beanFactory.setTempClassLoader(new ContextTypeMatchClassLoader(beanFactory.getBeanClassLoader()));
 		}

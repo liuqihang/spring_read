@@ -1,13 +1,14 @@
-package com.spring.tx.service;
+package com.spring.at.service.impl;
 
-import com.spring.tx.dao.UserDao;
+import com.spring.at.service.IUserService;
+import com.spring.at.dao.UserDao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-public class UserService implements IUserService{
+public class UserService implements IUserService {
 
 	@Autowired
 	private UserDao userDao;

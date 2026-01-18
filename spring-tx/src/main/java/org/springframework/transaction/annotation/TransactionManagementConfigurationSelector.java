@@ -47,6 +47,31 @@ public class TransactionManagementConfigurationSelector extends AdviceModeImport
 	protected String[] selectImports(AdviceMode adviceMode) {
 		switch (adviceMode) {
 			case PROXY:
+				//AutoProxyRegistrar ==>
+				// 		beanName:org.springframework.aop.config.internalAutoProxyCreator
+				// 		类型：InfrastructureAdvisorAutoProxyCreator
+				// 		作用：自动代理创建器(BPP), 决定是否给bean生成代理
+
+				//ProxyTransactionManagementConfiguration ==>
+				// 		beanClass:org.springframework.transaction.annotation.ProxyTransactionManagementConfiguration
+				// 		角色: 配置类内含@Configuration注解, 注册所有事物基础设施bean
+				//				==> 引入beanName:org.springframework.transaction.config.internalTransactionAdvisor
+				//				==> 类型:BeanFactoryTransactionAttributeSourceAdvisor
+				//				==> 角色:切点 + Advice, 决定哪些方法要织入事务
+				//
+				//				==> 引入beanName:transactionAttributeSource
+				//				==> 类型:AnnotationTransactionAttributeSource
+				//				==> 角色:解析@Transactional, 决定 propagation-传播方式、 isolation-隔离级别、rollback rules-回滚规则
+				//
+				//				==> 引入beanName:transactionInterceptor
+				//				==> 类型:transactionInterceptor
+				//				==> 角色:实际执行事务逻辑的  invokeWithinTransaction()方法
+
+				//		其继承的父类AbstractTransactionManagementConfiguration引入
+				//				==> beanName:org.springframework.transaction.config.internalTransactionalEventListenerFactory
+				//				==> 类型:TransactionalEventListenerFactory
+				//				==> 角色:支持@TransactionalEventListener, 让事件绑定到事务生命周期
+
 				return new String[] {AutoProxyRegistrar.class.getName(),
 						ProxyTransactionManagementConfiguration.class.getName()};
 			case ASPECTJ:

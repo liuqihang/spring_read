@@ -85,6 +85,7 @@ final class PostProcessorRegistrationDelegate {
 		 * beanFactory == public class DefaultListableBeanFactory implements ... BeanDefinitionRegistry ...
 		 * 所以这里的if符合条件
 		 */
+		//这一层的beanFactoryPostProcessors参数都是手动调用addBeanFactoryPostProcessor注册进来的(自定义实现BeanFactoryPostProcessor然后手动add)，一般是空list
 		if (beanFactory instanceof BeanDefinitionRegistry) {
 			BeanDefinitionRegistry registry = (BeanDefinitionRegistry) beanFactory;
 			List<BeanFactoryPostProcessor> regularPostProcessors = new ArrayList<>();
@@ -222,7 +223,24 @@ final class PostProcessorRegistrationDelegate {
 
 		// Separate between BeanFactoryPostProcessors that implement PriorityOrdered,
 		// Ordered, and the rest.
+		//这里ordered和non使用String来存储, 而priority用BFPP来存储是Spring特意设计的，为了延迟实例化getBean, 分级排序。主要是PriorityOrdered依然可能修改 BeanDefinition、注册新的 BeanDefinition、改变属性值、scope、lazy。
+		//Ordered的排序依赖是需要可以调用到getOrder()方法，而能调用方法是建立在bean已经实例化的基础上的, 然后现在分类阶段还在BFPP可以调整beanDefinition的阶段，这个阶段不合适提前getBean Ordered类的BFPP
+
+		//   -------------------------------------分类阶段	START -------------------------------------------------------------------------------
+		/*
+			PriorityOrdered 的 BFPP 在分类阶段即允许实例化：
+			 1. 其语义要求最早执行
+			 2. 通常用于影响容器结构（BeanDefinition 注册 / 修改）
+			 3. Spring 认为其实例化副作用是“可接受且必要的”
+		 */
 		List<BeanFactoryPostProcessor> priorityOrderedPostProcessors = new ArrayList<>();
+
+		/*
+			Ordered / NonOrdered 在分类阶段仅记录 beanName，而不实例化：
+			1. 避免在 BFPP 分类阶段提前触发 getBean()
+			2. 防止 Ordered BFPP 的构造器 / 注入逻辑在 PriorityOrdered BFPP 尚未执行前生效
+			3. 确保所有 PriorityOrdered BFPP 的BeanDefinition 修改已完成后，再实例化其他 BFPP
+		*/
 		List<String> orderedPostProcessorNames = new ArrayList<>();
 		List<String> nonOrderedPostProcessorNames = new ArrayList<>();
 		for (String ppName : postProcessorNames) {
@@ -239,7 +257,10 @@ final class PostProcessorRegistrationDelegate {
 				nonOrderedPostProcessorNames.add(ppName);
 			}
 		}
+		//   -------------------------------------分类阶段	END  -------------------------------------------------------------------------------
 
+
+		//   -------------------------------------执行阶段	START  -----------------------------------------------------------------------------
 		// First, invoke the BeanFactoryPostProcessors that implement PriorityOrdered.
 		sortPostProcessors(priorityOrderedPostProcessors, beanFactory);
 		invokeBeanFactoryPostProcessors(priorityOrderedPostProcessors, beanFactory);
@@ -258,6 +279,8 @@ final class PostProcessorRegistrationDelegate {
 			nonOrderedPostProcessors.add(beanFactory.getBean(postProcessorName, BeanFactoryPostProcessor.class));
 		}
 		invokeBeanFactoryPostProcessors(nonOrderedPostProcessors, beanFactory);
+
+		//   -------------------------------------执行阶段	END  -------------------------------------------------------------------------------
 
 		// Clear cached merged bean definitions since the post-processors might have
 		// modified the original metadata, e.g. replacing placeholders in values...

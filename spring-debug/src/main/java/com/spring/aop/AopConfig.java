@@ -32,9 +32,12 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
 @EnableAspectJAutoProxy(exposeProxy = true)
 public class AopConfig {
 
-//	@Bean
-//	public LogAspect logAspect() {
-//		return new LogAspect();
-//	}
+	// 注册UserBean，指定初始化和销毁方法
+	@Bean(initMethod = "myInitMethod", destroyMethod = "myDestroyMethod")
+	public LifecycleTest userBean() {
+		LifecycleTest userBean = new LifecycleTest();
+		userBean.setLifeCycle("Spring learner");
+		return userBean;
+	}
 
 }

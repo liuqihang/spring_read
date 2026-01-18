@@ -12,9 +12,9 @@ public class Test01 {
 
 
 //		IUserService us = (IUserService)context.getBean(UserService.class);
-		IUserService us = (IUserService)context.getBean(UserService.class);
-		System.out.println(us);
-		us.sayHello();
+//		IUserService us = (IUserService)context.getBean(UserService.class);
+//		System.out.println(us);
+//		us.sayHello();
 
 
 //		Person bean = context.getBean(Person.class);
