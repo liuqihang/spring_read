@@ -21,11 +21,11 @@ public class LogAspect {
 		System.out.println("[LogAspect] before");
 	}
 
-	@Around("serviceMethods()")
-	public Object around(ProceedingJoinPoint pjp) throws Throwable {
-		System.out.println("[LogAspect] around before");
+	@Around("serviceMethods() && args(id)")
+	public Object around(ProceedingJoinPoint pjp, Long id) throws Throwable {
+		System.out.println("[LogAspect] around before, id:" + id);
 		Object ret = pjp.proceed();
-		System.out.println("[LogAspect] around after");
+		System.out.println("[LogAspect] around after, ret:" + ret);
 		return ret;
 	}
 

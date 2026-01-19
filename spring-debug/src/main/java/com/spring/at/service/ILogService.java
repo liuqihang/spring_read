@@ -2,7 +2,7 @@ package com.spring.at.service;
 
 public interface ILogService {
 
-	void printLog();
+//	void printLog();
 
-	void auth();
+	String auth(Long userId);
 }

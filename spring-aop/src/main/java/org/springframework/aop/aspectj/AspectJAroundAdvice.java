@@ -65,6 +65,8 @@ public class AspectJAroundAdvice extends AbstractAspectJAdvice implements Method
 			throw new IllegalStateException("MethodInvocation is not a Spring ProxyMethodInvocation: " + mi);
 		}
 		ProxyMethodInvocation pmi = (ProxyMethodInvocation) mi;
+		//做一下适配，ProceedingJoinPoint是AspectJ体系的, 而MethodInvocation是SpringAOP体系的, 这里先将mi封装成ProxyMethodInvocation，再适配成AspectJ认的ProceedingJoinPoint
+		// 为public Object around(ProceedingJoinPoint pjp)的入参做准备，核心是可以继续回调proceed
 		ProceedingJoinPoint pjp = lazyGetProceedingJoinPoint(pmi);
 		JoinPointMatch jpm = getJoinPointMatch(pmi);
 		return invokeAdviceMethod(pjp, jpm, null, null);

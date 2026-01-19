@@ -57,7 +57,7 @@ public abstract class AopConfigUtils {
 	private static final List<Class<?>> APC_PRIORITY_LIST = new ArrayList<>(3);
 
 	static {
-		// Set up the escalation list...
+		// Set up the escalation list... 建立升级列表，AnnotationAwareAspectJAutoProxyCreator能力最强，InfrastructureAdvisorAutoProxyCreator能力最弱。举例：当AspectJ注解和事务注解都开启时，这两个都会加载，但只保留能力最强的一个！！
 		APC_PRIORITY_LIST.add(InfrastructureAdvisorAutoProxyCreator.class);
 		APC_PRIORITY_LIST.add(AspectJAwareAdvisorAutoProxyCreator.class);
 		APC_PRIORITY_LIST.add(AnnotationAwareAspectJAutoProxyCreator.class);
@@ -119,7 +119,7 @@ public abstract class AopConfigUtils {
 			Class<?> cls, BeanDefinitionRegistry registry, @Nullable Object source) {
 
 		Assert.notNull(registry, "BeanDefinitionRegistry must not be null");
-
+		//下面判断是否已经存在internalAutoProxyCreator的beanName, 如果已经存在则将筛选一个优先级更高的替换到低级的AutoProxyCreator（优先级见AopConfigUtils的static代码块）
 		if (registry.containsBeanDefinition(AUTO_PROXY_CREATOR_BEAN_NAME)) {
 			BeanDefinition apcDefinition = registry.getBeanDefinition(AUTO_PROXY_CREATOR_BEAN_NAME);
 			if (!cls.getName().equals(apcDefinition.getBeanClassName())) {

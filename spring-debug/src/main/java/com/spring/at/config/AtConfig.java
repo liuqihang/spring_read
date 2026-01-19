@@ -14,6 +14,9 @@ import javax.sql.DataSource;
 
 @Configuration
 @ComponentScan("com.spring.at")
+// 这里exposeProxy=true 表示暴露代理，核心作用是将AOP代理对象暴露到ThreadLocal中，允许AopContext.currentProxy获取代理对象，
+// 该配置主要解决目标对象内部方法调用时AOP增强失效的问题
+// (内部调用默认走this,而非代理，注意该配置仅对Spring AOP代理生效，对AspectJ原生织入无效)
 @EnableAspectJAutoProxy(exposeProxy = true)
 @EnableTransactionManagement
 public class AtConfig {

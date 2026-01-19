@@ -930,9 +930,9 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 					}
 				}
 				else {
-//					System.out.println("start getBean:" + beanName);
+					System.out.println("start getBean:" + beanName);
 					getBean(beanName);
-//					System.out.println("end getBean:" + beanName);
+					System.out.println("end getBean:" + beanName);
 				}
 			}
 		}

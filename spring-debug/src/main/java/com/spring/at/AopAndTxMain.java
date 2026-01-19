@@ -12,7 +12,7 @@ public class AopAndTxMain {
 		AnnotationConfigApplicationContext ctx =
 				new AnnotationConfigApplicationContext(AtConfig.class);
 
-		// ⚠️ 一定按接口拿（JDK 代理）
+//		// ⚠️ 一定按接口拿（JDK 代理）
 		IUserService userService = ctx.getBean(IUserService.class);
 		System.out.println(userService);
 
@@ -27,7 +27,7 @@ public class AopAndTxMain {
 				"select balance from user where id = 1",
 				Integer.class
 		);
-		System.out.println(" ===========  final balance:" + balance);
+//		System.out.println(" ===========  final balance:" + balance);
 
 
 		ILogService logService = (ILogService) ctx.getBean("logService");
@@ -35,8 +35,8 @@ public class AopAndTxMain {
 		System.out.println("logService Bean class = " + logService.getClass());
 
 
-		logService.printLog();
-		logService.auth();
+//		logService.printLog();
+		logService.auth(1L);
 	}
 
 }
