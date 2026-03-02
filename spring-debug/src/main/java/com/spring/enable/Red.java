@@ -1,0 +1,4 @@
+package com.spring.enable;
+
+public class Red {
+}
